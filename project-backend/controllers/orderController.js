@@ -1,5 +1,5 @@
 // controllers/orderController.js
-const Order = require("../models/order");
+const Order = require("../models/Order");
 
 const placeOrder = async (req, res) => {
   try {
