@@ -12,7 +12,9 @@ const authMiddleware = require("../middleware/authMiddleware");
 const router = express.Router();
 
 //  Add product to cart
-router.post("/add", authMiddleware, addToCart);
+// router.post("/add", authMiddleware, addToCart);
+
+router.post("/add", addToCart);
 
 //  Update quantity
 router.post("/update", authMiddleware, updateQuantity);
