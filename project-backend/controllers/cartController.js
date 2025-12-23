@@ -157,7 +157,8 @@
 
 const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
-const Product = require("../models/Product");
+const Product = require("../models/productModel");
+
 
 // helper: safely get userId
 const getUserId = (req) => req.user?.id || req.user?._id;
