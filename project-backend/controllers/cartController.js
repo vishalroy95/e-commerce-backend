@@ -159,13 +159,20 @@ const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
 const Product = require("../models/productModel");
 
+// helper: safely get userId
+const getUserId = (req) => req.user?.id || req.user?._id;
+
 // -------------------- ADD TO CART --------------------
 exports.addToCart = async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
-    const userId = req.user.id;
+    const userId = getUserId(req);
 
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
       return res.status(400).json({ message: "Invalid productId" });
     }
 
@@ -184,16 +191,16 @@ exports.addToCart = async (req, res) => {
     );
 
     if (index >= 0) {
-      cart.items[index].quantity += quantity;
+      cart.items[index].quantity += Number(quantity);
     } else {
       cart.items.push({
-        productId: new mongoose.Types.ObjectId(productId),
-        quantity,
+        productId,
+        quantity: Number(quantity),
       });
     }
 
     await cart.save();
-    await cart.populate("items.productId");
+    cart = await cart.populate("items.productId");
 
     res.status(200).json({ cart });
   } catch (error) {
@@ -205,9 +212,12 @@ exports.addToCart = async (req, res) => {
 // -------------------- GET CART --------------------
 exports.getCart = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ userId: req.user.id }).populate(
-      "items.productId"
-    );
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    let cart = await Cart.findOne({ userId }).populate("items.productId");
 
     res.status(200).json({ cart: cart || { items: [] } });
   } catch (error) {
@@ -220,8 +230,13 @@ exports.getCart = async (req, res) => {
 exports.updateQuantity = async (req, res) => {
   try {
     const { productId, quantity } = req.body;
+    const userId = getUserId(req);
 
-    const cart = await Cart.findOne({ userId: req.user.id });
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    let cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
 
     const index = cart.items.findIndex(
@@ -235,11 +250,11 @@ exports.updateQuantity = async (req, res) => {
     if (quantity <= 0) {
       cart.items.splice(index, 1);
     } else {
-      cart.items[index].quantity = quantity;
+      cart.items[index].quantity = Number(quantity);
     }
 
     await cart.save();
-    await cart.populate("items.productId");
+    cart = await cart.populate("items.productId");
 
     res.json({ cart });
   } catch (error) {
@@ -252,8 +267,13 @@ exports.updateQuantity = async (req, res) => {
 exports.removeFromCart = async (req, res) => {
   try {
     const { productId } = req.body;
+    const userId = getUserId(req);
 
-    const cart = await Cart.findOne({ userId: req.user.id });
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    let cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
 
     cart.items = cart.items.filter(
@@ -261,7 +281,7 @@ exports.removeFromCart = async (req, res) => {
     );
 
     await cart.save();
-    await cart.populate("items.productId");
+    cart = await cart.populate("items.productId");
 
     res.json({ cart });
   } catch (error) {
@@ -273,15 +293,15 @@ exports.removeFromCart = async (req, res) => {
 // -------------------- CLEAR CART --------------------
 exports.clearCart = async (req, res) => {
   try {
-    await Cart.findOneAndUpdate(
-      { userId: req.user.id },
-      { items: [] }
-    );
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
+    await Cart.findOneAndUpdate({ userId }, { items: [] });
     res.json({ message: "Cart cleared" });
   } catch (error) {
     console.error("❌ clearCart error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
-
