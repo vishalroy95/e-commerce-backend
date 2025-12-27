@@ -13,6 +13,7 @@ const productSchema = new mongoose.Schema(
     isFeatured: { type: Boolean, default: false },
   },
   { timestamps: true }
+  collection: "products" //  YE LINE FIX HAI
 );
 
 module.exports = mongoose.model("Product", productSchema);
