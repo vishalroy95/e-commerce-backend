@@ -164,6 +164,54 @@ const Product = require("../models/productModel");
 const getUserId = (req) => req.user?.id || req.user?._id;
 
 // -------------------- ADD TO CART --------------------
+// exports.addToCart = async (req, res) => {
+//   try {
+//     const { productId, quantity = 1 } = req.body;
+//     const userId = getUserId(req);
+
+//     if (!userId) {
+//       return res.status(401).json({ message: "Unauthorized" });
+//     }
+
+//     if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+//       return res.status(400).json({ message: "Invalid productId" });
+//     }
+
+//     const product = await Product.findById(productId);
+//     if (!product) {
+//       return res.status(404).json({ message: "Product not found" });
+//     }
+
+//     let cart = await Cart.findOne({ userId });
+//     if (!cart) {
+//       cart = new Cart({ userId, items: [] });
+//     }
+
+//     const index = cart.items.findIndex(
+//       (item) => item.productId.toString() === productId.toString()
+//     );
+
+//     if (index >= 0) {
+//       cart.items[index].quantity += Number(quantity);
+//     } else {
+//       cart.items.push({
+//         productId,
+//         quantity: Number(quantity),
+//       });
+//     }
+
+//     await cart.save();
+//     cart = await cart.populate("items.productId");
+
+//     res.status(200).json({ cart });
+//   } catch (error) {
+//     console.error("❌ addToCart error:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
+ // updated add to cart
+
 exports.addToCart = async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
@@ -177,7 +225,10 @@ exports.addToCart = async (req, res) => {
       return res.status(400).json({ message: "Invalid productId" });
     }
 
-    const product = await Product.findById(productId);
+    const product = await Product.findOne({
+      _id: new mongoose.Types.ObjectId(productId)
+    });
+
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -188,16 +239,13 @@ exports.addToCart = async (req, res) => {
     }
 
     const index = cart.items.findIndex(
-      (item) => item.productId.toString() === productId.toString()
+      (item) => item.productId.toString() === productId
     );
 
     if (index >= 0) {
       cart.items[index].quantity += Number(quantity);
     } else {
-      cart.items.push({
-        productId,
-        quantity: Number(quantity),
-      });
+      cart.items.push({ productId, quantity: Number(quantity) });
     }
 
     await cart.save();
@@ -209,6 +257,7 @@ exports.addToCart = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // -------------------- GET CART --------------------
 exports.getCart = async (req, res) => {
