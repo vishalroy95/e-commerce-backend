@@ -225,10 +225,7 @@ exports.addToCart = async (req, res) => {
       return res.status(400).json({ message: "Invalid productId" });
     }
 
-    const product = await Product.findOne({
-      _id: new mongoose.Types.ObjectId(productId)
-    });
-
+    const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -249,7 +246,7 @@ exports.addToCart = async (req, res) => {
     }
 
     await cart.save();
-    cart = await cart.populate("items.productId");
+    await cart.populate("items.productId");
 
     res.status(200).json({ cart });
   } catch (error) {
