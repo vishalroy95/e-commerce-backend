@@ -214,47 +214,39 @@ const getUserId = (req) => req.user?.id || req.user?._id;
 
 exports.addToCart = async (req, res) => {
   try {
+    const { productId, quantity = 1 } = req.body;
     const userId = req.user?.id || req.user?._id;
-    const { productId, quantity } = req.body;
 
-    console.log("🟡 productId received:", productId);
-
-    if (!productId) {
-      return res.status(400).json({ message: "productId is required" });
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
     const product = await Product.findById(productId);
-
-    console.log("🟢 product found:", product);
-
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    let cart = await Cart.findOne({ user: userId });
-
+    let cart = await Cart.findOne({ userId });
     if (!cart) {
-      cart = new Cart({
-        user: userId,
-        items: [{ product: productId, quantity: quantity || 1 }],
-      });
-    } else {
-      const index = cart.items.findIndex(
-        (item) => item.product.toString() === productId
-      );
+      cart = new Cart({ userId, items: [] });
+    }
 
-      if (index > -1) {
-        cart.items[index].quantity += quantity || 1;
-      } else {
-        cart.items.push({ product: productId, quantity: quantity || 1 });
-      }
+    const index = cart.items.findIndex(
+      (item) => item.productId.toString() === productId
+    );
+
+    if (index >= 0) {
+      cart.items[index].quantity += Number(quantity);
+    } else {
+      cart.items.push({ productId, quantity: Number(quantity) });
     }
 
     await cart.save();
+    await cart.populate("items.productId");
 
-    res.status(200).json({ message: "Added to cart", cart });
+    res.status(200).json({ cart });
   } catch (err) {
-    console.error("❌ Add to cart error:", err);
+    console.error("❌ addToCart error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
