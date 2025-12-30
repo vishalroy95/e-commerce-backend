@@ -221,6 +221,10 @@ exports.addToCart = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid productId" });
+    }
+
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -232,7 +236,7 @@ exports.addToCart = async (req, res) => {
     }
 
     const index = cart.items.findIndex(
-      (item) => item.productId.toString() === productId
+      (item) => item.productId.toString() === productId.toString()
     );
 
     if (index >= 0) {
@@ -250,7 +254,6 @@ exports.addToCart = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // -------------------- GET CART --------------------
 exports.getCart = async (req, res) => {
